@@ -1,102 +1,82 @@
-from tkinter import *
+from tkinter import ttk
 
 from translate import tr
 from .tooltip import ToolTip
 
-import os
-MODULE_PATH = os.path.dirname(__file__)
 
-def expand_filename(fname):
-    return MODULE_PATH + "/" + fname
-
-
-class PyIconWidget(Frame):
+class PyIconWidget(ttk.Frame):
     """
     Manages the PyIconFrame widget which contains the icons
     """
-    def __init__(self, parent, root):
-        Frame.__init__(self, parent, background="white")
-        #self.config(borderwidth=1, relief=GROOVE)
-        # Loading icon pictures
-        icon_new_file_gif = PhotoImage(file=expand_filename("icons/new_file_icon4.gif"))
-        icon_save_gif = PhotoImage(file=expand_filename("icons/save_icon2.gif"))
-        icon_open_gif = PhotoImage(file=expand_filename("icons/open_icon2.gif"))
-        self.icon_student_gif = PhotoImage(file=expand_filename("icons/student_icon2.gif"))
-        self.icon_pro_gif = PhotoImage(file=expand_filename("icons/pro_icon3.gif"))
-        self.icon_run_gif = PhotoImage(file=expand_filename("icons/run_icon2.gif"))
-        self.icon_stop_gif = PhotoImage(file=expand_filename("icons/stop_icon2.gif"))
+    def __init__(self, parent, root, theme=None):
+        self.theme = theme or {}
+        super().__init__(parent, style='Toolbar.TFrame', padding=(16, 12))
+        self.root = root
+        # Creating the buttons with tooltips
+        self.icons = dict()  # dict[str:ToolTip]
+        self.is_running = False
+        self.current_mode = 'student'
 
-        # Creating the labels
-        self.icons = dict()  # dict[str:Label]
+        self._add_button('new_file', tr('New'), tr('New (Ctrl-N)'), column=0)
+        self._add_button('open', tr('Open'), tr('Open (Ctrl-O)'), column=1)
+        self._add_button('save', tr('Save'), tr('Save (Ctrl-S)'), column=2)
 
-        self.icons['new_file'] = ToolTip(Label(self, image=icon_new_file_gif,
-                                               cursor="hand1", background="#e1e1e1", 
-                                               relief="raised", justify=CENTER,
-                                               text="", compound=NONE,
-                                               activebackground='black'),
-                                         msg = tr('New Ctrl-N'))
+        self._add_separator(column=3)
+        self._add_button('mode', tr('Student mode'), tr('Switch mode (Ctrl-M)'), column=4)
 
-        self.icons['open'] = ToolTip(Label(self, image=icon_open_gif, justify=CENTER, 
-                                           cursor="hand1", background="#e1e1e1", 
-                                           relief="raised", text='',
-                                           compound=NONE, activebackground='#A9A9A9'),
-                                  msg = tr('Open Ctrl-O'))
+        self._add_separator(column=5)
+        self._add_button('run', tr('Run'), tr('Run (Ctrl-R / F5)'), column=6, style='Accent.TButton')
+        self._add_button('theme', tr('Light theme'), tr('Toggle theme (Ctrl-Shift-T)'), column=7)
 
-        self.icons['save'] = ToolTip(Label(self, image=icon_save_gif, justify=CENTER, 
-                                           cursor="hand1", background="#e1e1e1", 
-                                           relief="raised", text='',
-                                           compound=NONE, activebackground='#A9A9A9'),
-                                     msg = tr('Save Ctrl-S'))
-
-        self.icons['mode'] = ToolTip(Label(self, cursor="hand1", background="#e1e1e1",
-                                           relief="raised", justify=CENTER,
-                                           text='', compound=NONE,
-                                           activebackground='#A9A9A9'),
-                                     msg = tr('Mode Ctrl-M'))
-
-        self.icons['run'] = ToolTip(Label(self, image=self.icon_run_gif, justify=CENTER,
-                                          cursor="hand1", background="#e1e1e1", 
-                                          relief="raised", text='',
-                                          compound=None, activebackground='#A9A9A9'),
-                                    msg = tr('Run Ctrl-R'))
-
-
-        # Set the icons inside the labels
-        self.icons['new_file'].wdgt.image = icon_new_file_gif
-        self.icons['save'].wdgt.image = icon_save_gif
-        self.icons['open'].wdgt.image = icon_open_gif
-        self.icons['mode'].wdgt.image = self.icon_student_gif
-        self.icons['run'].wdgt.image = self.icon_run_gif
-
-        # Packing the labels
-        sep = Label(self, background="white")
-        sep.grid(row=0, column=0, ipadx=7, ipady=3)
-        self.icons['new_file'].wdgt.grid(row=0, column=1, ipadx=7,
-                                         ipady=3)
-        self.icons['open'].wdgt.grid(row=0, column=2, ipadx=7,
-                                     ipady=3)
-        self.icons['save'].wdgt.grid(row=0, column=3, ipadx=7,
-                                     ipady=3)
-        sep = Label(self, background="white")
-        sep.grid(row=0, column=4, ipadx=7, ipady=3)
-        self.icons['mode'].wdgt.grid(row=0, column=5, ipadx=7,
-                                     ipady=3)
-        sep = Label(self, background="white")
-        sep.grid(row=0, column=6, ipadx=7, ipady=3)
-        self.icons['run'].wdgt.grid(row=0, column=7, ipadx=7,
-                                    ipady=3)
+        spacer = ttk.Frame(self, style='Toolbar.TFrame')
+        spacer.grid(row=0, column=8, sticky='ew')
+        self.grid_columnconfigure(8, weight=1)
 
     def enable_icon_running(self):
-        self.icons['run'].wdgt.config(image=self.icon_stop_gif)
-
+        self.is_running = True
+        self.icons['run'].wdgt.config(text=tr('Stop'), style='Danger.TButton')
 
     def disable_icon_running(self):
-        self.icons['run'].wdgt.config(image=self.icon_run_gif)
-        
-    def switch_icon_mode(self, mode):
-        """ Change icon when switching mode """
-        if mode == "student":
-            self.icons['mode'].wdgt.config(image=self.icon_student_gif)
-        elif mode == "full":
-            self.icons['mode'].wdgt.config(image=self.icon_pro_gif)
+        self.is_running = False
+        self.icons['run'].wdgt.config(text=tr('Run'), style='Accent.TButton')
 
+    def switch_icon_mode(self, mode):
+        """Change label when switching mode."""
+        self.current_mode = mode
+        label = tr('Student mode') if mode == "student" else tr('Expert mode')
+        self.icons['mode'].wdgt.config(text=label)
+
+    def set_theme_target(self, theme_name):
+        """Update the theme button label depending on the next theme."""
+        label = tr('Dark theme') if theme_name == 'dark' else tr('Light theme')
+        self.icons['theme'].wdgt.config(text=label)
+        try:
+            self.icons['theme'].msgVar.set(f"{tr('Toggle theme (Ctrl-Shift-T)')} -> {label}")
+        except AttributeError:
+            pass
+
+    def update_theme(self, theme, next_theme):
+        """Refresh styling after the palette changed."""
+        self.theme = theme or self.theme
+        self.configure(style='Toolbar.TFrame')
+        for key, tooltip in self.icons.items():
+            button = tooltip.wdgt
+            default_style = 'Accent.TButton' if key == 'run' and not self.is_running else 'Toolbar.TButton'
+            if key == 'run':
+                button.config(style='Danger.TButton' if self.is_running else 'Accent.TButton')
+                button.config(text=tr('Stop') if self.is_running else tr('Run'))
+            else:
+                button.config(style=default_style)
+        self.switch_icon_mode(self.current_mode)
+        self.set_theme_target(next_theme)
+
+    def _add_button(self, key, text, tooltip_text, column, style='Toolbar.TButton'):
+        button = ttk.Button(self, text=text, style=style)
+        button.configure(cursor='hand2', padding=(14, 8))
+        tooltip = ToolTip(button, msg=tooltip_text)
+        self.icons[key] = tooltip
+        tooltip.wdgt.grid(row=0, column=column, padx=6)
+
+    def _add_separator(self, column):
+        sep = ttk.Separator(self, orient='vertical', style='Toolbar.TSeparator')
+        sep.grid(row=0, column=column, sticky='ns', padx=6, pady=4)
