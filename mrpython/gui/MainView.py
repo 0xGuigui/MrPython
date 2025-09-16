@@ -184,11 +184,14 @@ class MainView:
                        background=[('active', self.theme['danger']), ('disabled', border)],
                        foreground=[('disabled', muted)])
 
-        self.style.configure('CustomNotebook', background=surface, borderwidth=0)
-        self.style.configure('CustomNotebook.Tab', background=surface, foreground=muted, padding=(16, 10))
+        tab_inactive = surface_alt
+        self.style.configure('CustomNotebook', background=surface, borderwidth=0, tabmargins=(12, 8, 12, 0))
+        self.style.configure('CustomNotebook.Tab', background=tab_inactive, foreground=muted,
+                             padding=(20, 12), borderwidth=0, relief='flat')
         self.style.map('CustomNotebook.Tab',
-                       background=[('selected', accent), ('!selected', surface)],
-                       foreground=[('selected', accent_fg), ('!selected', muted)])
+                       background=[('selected', accent), ('active', accent_hover), ('!selected', tab_inactive)],
+                       foreground=[('selected', accent_fg), ('!selected', muted)],
+                       bordercolor=[('selected', accent), ('!selected', tab_inactive)])
 
     def apply_theme(self, theme_name):
         """Apply one of the predefined themes and propagate it to sub widgets."""
