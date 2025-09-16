@@ -40,8 +40,15 @@ class Application:
             set_translator_locale(language)
 
         self.root = Tk()
-        
-        self.root.geometry('768x612')
+
+        screen_width = self.root.winfo_screenwidth()
+        screen_height = self.root.winfo_screenheight()
+        window_width = max(int(screen_width * 0.5), 960)
+        window_height = max(int(screen_height * 0.5), 640)
+        offset_x = (screen_width - window_width) // 2
+        offset_y = (screen_height - window_height) // 2
+        self.root.geometry(f"{window_width}x{window_height}+{offset_x}+{offset_y}")
+        self.root.minsize(960, 640)
         self.root.title("MrPython")
 
         self.mode = "full"
@@ -92,12 +99,14 @@ class Application:
         self.save_button = self.icon_widget.icons['save'].wdgt
         self.open_button = self.icon_widget.icons['open'].wdgt
         self.mode_button = self.icon_widget.icons['mode'].wdgt
-        self.new_file_button.bind("<1>", self.new_file)
-        self.run_button.bind("<1>", self.run_module)
-        self.mode_button.bind("<1>", self.change_mode)
-        self.save_button.bind("<1>", self.save)
+        self.theme_button = self.icon_widget.icons['theme'].wdgt
+        self.new_file_button.configure(command=self.new_file)
+        self.run_button.configure(command=self.run_module)
+        self.mode_button.configure(command=self.change_mode)
+        self.save_button.configure(command=self.save)
         self.save_button.bind("<3>", self.editor_list.save_as)
-        self.open_button.bind("<1>", self.open)
+        self.open_button.configure(command=self.open)
+        self.theme_button.configure(command=self.toggle_theme)
 
         # File
         self.root.bind("<Control-n>", self.new_file)
@@ -105,6 +114,7 @@ class Application:
         self.root.bind_all('<Control-s>', self.save, add='+')
         self.root.bind_all('<Control-S>', self.editor_list.save_as, add='+')
         self.root.bind("<Control-m>", self.change_mode)
+        self.root.bind_all('<Control-Shift-T>', self.toggle_theme, add='+')
         self.root.bind('<<save-window-as-file>>', self.editor_list.save_as)
         self.root.bind('<<save-copy-of-window-as-file>>',
                        self.editor_list.save_as_copy)
@@ -255,6 +265,10 @@ class Application:
             self.update_title()
             self.status_bar.update_save_label(file_name)
             self.console.run(file_name)
+
+    def toggle_theme(self, event=None):
+        self.main_view.toggle_theme()
+        return "break"
 
     def goto_position(self, lineno, col_offset):
         editor = self.editor_list.get_current_editor()

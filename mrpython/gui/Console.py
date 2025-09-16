@@ -1,5 +1,6 @@
 from platform import python_version
 from tkinter import *
+from tkinter import ttk
 from tkinter.font import Font, nametofont
 from PyInterpreter import InterpreterProxy
 from .WidgetRedirector import WidgetRedirector
@@ -130,25 +131,62 @@ class Console:
         , 'warning': 'orange'
         , 'info' : 'blue'    }
 
-    def __init__(self, output_parent, input_parent, app):
+    def __init__(self, output_parent, input_parent, app, theme=None):
         """
         Create and configure the shell (the text widget that gives informations
         and the interactive shell)
         """
         self.app = app
+        self.theme = theme or {
+            'background': '#0f172a',
+            'surface': '#111c3a',
+            'surface_alt': '#162544',
+            'border': '#1f2846',
+            'accent': '#4f46e5',
+            'accent_hover': '#6366f1',
+            'accent_fg': '#f8fafc',
+            'text': '#e2e8f0',
+            'muted': '#94a3b8',
+            'success': '#22c55e',
+            'warning': '#facc15',
+            'danger': '#f87171'
+        }
+        self.text_colors = {
+            'run': self.theme['success'],
+            'error': self.theme['danger'],
+            'normal': self.theme['text'],
+            'warning': self.theme['warning'],
+            'info': self.theme['accent'],
+            'stdout': self.theme['muted']
+        }
         # Creating output console
-        self.frame_output = Frame(output_parent)
-        self.scrollbar = Scrollbar(self.frame_output)
+        self.frame_output = Frame(output_parent, background=self.theme['surface'],
+                                  highlightbackground=self.theme['border'],
+                                  highlightcolor=self.theme['border'],
+                                  highlightthickness=1, bd=0,
+                                  padx=14, pady=12)
+        self.scrollbar = ttk.Scrollbar(self.frame_output, orient=VERTICAL,
+                                       style='Console.Vertical.TScrollbar')
         self.scrollbar.grid(row=0, column=1, sticky=(N, S))
 
-
-
-        self.output_console = ReadOnlyText(self.frame_output, height=15, 
-                                   yscrollcommand=self.scrollbar.set)
+        self.output_console = ReadOnlyText(
+            self.frame_output,
+            height=15,
+            yscrollcommand=self.scrollbar.set,
+            background=self.theme['surface_alt'],
+            foreground=self.theme['text'],
+            insertbackground=self.theme['accent'],
+            selectbackground=self.theme['accent'],
+            selectforeground=self.theme['accent_fg'],
+            relief=FLAT,
+            borderwidth=0,
+            highlightthickness=0,
+            wrap=WORD,
+            padx=16,
+            pady=12
+        )
 
         self.hyperlinks = HyperlinkManager(self.output_console)
-
-        self.frame_output.config(borderwidth=1, relief=GROOVE)
         self.output_console.grid(row=0, column=0, sticky=(N, S, E, W))
         self.scrollbar.config(command=self.output_console.yview)
 
@@ -156,22 +194,41 @@ class Console:
         self.frame_output.columnconfigure(0, weight=1)
 
         # Creating input console
-        self.frame_input = Frame(input_parent)
-        self.arrows = Label(self.frame_input, text=" >>> ")
-        self.input_console = Entry(self.frame_input, background='#775F57',
-                                  #height=1,
-                                   state='disabled', relief=FLAT)
+        self.frame_input = Frame(input_parent, background=self.theme['surface'],
+                                 highlightbackground=self.theme['border'],
+                                 highlightcolor=self.theme['border'],
+                                 highlightthickness=1, bd=0)
+        self.frame_input.configure(padx=14, pady=12)
+        self.arrows = Label(self.frame_input, text=">>>",
+                            background=self.theme['surface'],
+                            foreground=self.theme['muted'],
+                            padx=12, pady=6)
+        self.input_console = Entry(
+            self.frame_input,
+            background=self.theme['surface_alt'],
+            foreground=self.theme['text'],
+            insertbackground=self.theme['accent'],
+            disabledbackground=self.theme['surface_alt'],
+            disabledforeground=self.theme['muted'],
+            relief=FLAT,
+            highlightthickness=0,
+            borderwidth=0,
+            state='disabled'
+        )
         self.input_console.bind('<Return>', self.evaluate_action)
         self.input_history = ConsoleHistory()
         self.input_console.bind('<Up>', self.history_up_action)
         self.input_console.bind('<Down>', self.history_down_action)
-        #self.frame_input.config(borderwidth=1, relief=GROOVE)
-        self.eval_button = Button(self.frame_input, text="Eval",
-                                  command=self.evaluate_action, width=7,
-                                  state='disabled')
-        self.arrows.config(borderwidth=1, relief=RIDGE)
-        self.arrows.grid(row=0, column=0)
-        self.input_console.grid(row=0, column=1, sticky="ew")
+        self.eval_button = ttk.Button(
+            self.frame_input,
+            text=tr('Eval'),
+            style='Accent.TButton',
+            command=self.evaluate_action
+        )
+        self.eval_button.state(['disabled'])
+        self.eval_button.configure(cursor='hand2')
+        self.arrows.grid(row=0, column=0, sticky=(W, E))
+        self.input_console.grid(row=0, column=1, sticky="ew", padx=(8, 8))
         self.eval_button.grid(row=0, column=2)
 
         self.frame_input.columnconfigure(1, weight=1)
@@ -209,12 +266,12 @@ class Console:
 
     def configure_color_tags(self):
         """ Set the colors for the specific tags """
-        self.output_console.tag_config('run', foreground='green')
-        self.output_console.tag_config('error', foreground='red')
-        self.output_console.tag_config('normal', foreground='black')
-        self.output_console.tag_config('warning', foreground='orange')
-        self.output_console.tag_config('info', foreground='brown')
-        self.output_console.tag_config('stdout', foreground='gray')
+        self.output_console.tag_config('run', foreground=self.text_colors['run'])
+        self.output_console.tag_config('error', foreground=self.text_colors['error'])
+        self.output_console.tag_config('normal', foreground=self.text_colors['normal'])
+        self.output_console.tag_config('warning', foreground=self.text_colors['warning'])
+        self.output_console.tag_config('info', foreground=self.text_colors['info'])
+        self.output_console.tag_config('stdout', foreground=self.text_colors['stdout'])
 
     def reset_output(self):
         """ Clear all the output console """
@@ -354,17 +411,46 @@ class Console:
 
     def switch_input_status(self, on):
         """ Enable or disable the evaluation bar and button """
-        stat = None
-        bg = None
         if on:
-            stat = 'normal'
-            bg = '#FFA500'
+            self.input_console.config(state='normal', background=self.theme['surface_alt'],
+                                      foreground=self.theme['text'])
+            self.eval_button.state(['!disabled'])
         else:
-            stat = 'disabled'
-            bg = '#775F57'
-        self.input_console.config(state=stat, background=bg)
-        self.eval_button.config(state=stat)
-        
+            self.input_console.config(state='disabled', background=self.theme['surface_alt'],
+                                      foreground=self.theme['muted'])
+            self.eval_button.state(['disabled'])
+
+    def update_theme(self, theme):
+        """Refresh console colors when the global palette changes."""
+        self.theme = theme or self.theme
+        self.text_colors = {
+            'run': self.theme['success'],
+            'error': self.theme['danger'],
+            'normal': self.theme['text'],
+            'warning': self.theme['warning'],
+            'info': self.theme['accent'],
+            'stdout': self.theme['muted']
+        }
+        self.frame_output.configure(background=self.theme['surface'],
+                                    highlightbackground=self.theme['border'],
+                                    highlightcolor=self.theme['border'])
+        self.scrollbar.configure(style='Console.Vertical.TScrollbar')
+        self.output_console.configure(background=self.theme['surface_alt'],
+                                      foreground=self.theme['text'],
+                                      insertbackground=self.theme['accent'],
+                                      selectbackground=self.theme['accent'],
+                                      selectforeground=self.theme['accent_fg'])
+        self.configure_color_tags()
+        self.frame_input.configure(background=self.theme['surface'],
+                                   highlightbackground=self.theme['border'],
+                                   highlightcolor=self.theme['border'])
+        self.arrows.configure(background=self.theme['surface'], foreground=self.theme['muted'])
+        self.input_console.configure(disabledbackground=self.theme['surface_alt'],
+                                     disabledforeground=self.theme['muted'])
+        self.eval_button.configure(style='Accent.TButton')
+        is_enabled = str(self.input_console['state']) == 'normal'
+        self.switch_input_status(is_enabled)
+
     def run(self, filename):
         """ Run the program in the current editor : execute, print results """
         # Reset the output first
