@@ -102,8 +102,8 @@ class Application:
         # File
         self.root.bind("<Control-n>", self.new_file)
         self.root.bind('<Control-o>', self.open)
-        self.root.bind('<Control-s>', self.save)
-        self.root.bind('<Control-S>', self.editor_list.save_as)
+        self.root.bind_all('<Control-s>', self.save, add='+')
+        self.root.bind_all('<Control-S>', self.editor_list.save_as, add='+')
         self.root.bind("<Control-m>", self.change_mode)
         self.root.bind('<<save-window-as-file>>', self.editor_list.save_as)
         self.root.bind('<<save-copy-of-window-as-file>>',
@@ -139,6 +139,7 @@ class Application:
         # Code execution
         self.root.bind('<<check-module>>', self.check_module)
         self.root.bind('<Control-r>', self.run_module)
+        self.root.bind_all('<F5>', self.run_module, add='+')
         self.root.bind('<Control-Key-Return>', self.run_source)
         # File change in notebook
         self.root.bind('<<NotebookTabChanged>>', self.update_title)
