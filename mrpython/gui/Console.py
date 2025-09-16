@@ -203,6 +203,9 @@ class Console:
                             background=self.theme['surface'],
                             foreground=self.theme['muted'],
                             padx=12, pady=6)
+        self.placeholder_text = tr('Testez vos expressions ici...')
+        self.placeholder_visible = False
+
         self.input_console = Entry(
             self.frame_input,
             background=self.theme['surface_alt'],
@@ -219,6 +222,8 @@ class Console:
         self.input_history = ConsoleHistory()
         self.input_console.bind('<Up>', self.history_up_action)
         self.input_console.bind('<Down>', self.history_down_action)
+        self.input_console.bind('<FocusIn>', self._handle_focus_in, add='+')
+        self.input_console.bind('<FocusOut>', self._handle_focus_out, add='+')
         self.eval_button = ttk.Button(
             self.frame_input,
             text=tr('Eval'),
@@ -360,7 +365,7 @@ class Console:
     def evaluate_action(self, *args):
         """ Evaluate the expression in the input console """
         expr = self.input_console.get()
-        if not expr:
+        if not expr or self.placeholder_visible:
             return
         local_interpreter = False
         if self.interpreter is None:
@@ -382,6 +387,7 @@ class Console:
                 self.input_history.record(expr)
 
             self.input_console.delete(0, END)
+            self._show_placeholder()
             self.write_report(ok, report, 'eval')
 
             if local_interpreter:
@@ -398,27 +404,59 @@ class Console:
         self.interpreter.run_evaluation(expr, callback)
 
     def history_up_action(self, event=None):
+        self._hide_placeholder()
         entry = self.input_history.move_past()
         if entry is not None:
             self.input_console.delete(0, END)
             self.input_console.insert(0, entry)
+        elif not self.input_console.get():
+            self._show_placeholder()
 
     def history_down_action(self, event=None):
+        self._hide_placeholder()
         entry = self.input_history.move_future()
         if entry is not None:
             self.input_console.delete(0, END)
             self.input_console.insert(0, entry)
+        elif not self.input_console.get():
+            self._show_placeholder()
 
     def switch_input_status(self, on):
         """ Enable or disable the evaluation bar and button """
         if on:
-            self.input_console.config(state='normal', background=self.theme['surface_alt'],
-                                      foreground=self.theme['text'])
+            self.input_console.config(state='normal', background=self.theme['surface_alt'])
+            if not self.input_console.get() or self.placeholder_visible:
+                self._show_placeholder()
+            else:
+                self.placeholder_visible = False
+                self.input_console.config(foreground=self.theme['text'])
             self.eval_button.state(['!disabled'])
         else:
             self.input_console.config(state='disabled', background=self.theme['surface_alt'],
                                       foreground=self.theme['muted'])
             self.eval_button.state(['disabled'])
+
+    def _show_placeholder(self):
+        if str(self.input_console['state']) != 'normal':
+            return
+        self.placeholder_visible = True
+        self.input_console.delete(0, END)
+        self.input_console.insert(0, self.placeholder_text)
+        self.input_console.config(foreground=self.theme['muted'])
+        self.input_console.icursor(0)
+
+    def _hide_placeholder(self):
+        if self.placeholder_visible:
+            self.input_console.delete(0, END)
+            self.placeholder_visible = False
+            self.input_console.config(foreground=self.theme['text'])
+
+    def _handle_focus_in(self, event=None):
+        self._hide_placeholder()
+
+    def _handle_focus_out(self, event=None):
+        if not self.input_console.get():
+            self._show_placeholder()
 
     def update_theme(self, theme):
         """Refresh console colors when the global palette changes."""
@@ -450,6 +488,8 @@ class Console:
         self.eval_button.configure(style='Accent.TButton')
         is_enabled = str(self.input_console['state']) == 'normal'
         self.switch_input_status(is_enabled)
+        if self.placeholder_visible:
+            self.input_console.config(foreground=self.theme['muted'])
 
     def run(self, filename):
         """ Run the program in the current editor : execute, print results """
