@@ -1,34 +1,38 @@
-from tkinter import *
+from tkinter import ttk, INSERT
 from platform import python_version
 from translate import tr
 
-class StatusBar(Frame):
+class StatusBar(ttk.Frame):
     """
     Manages the status bar that gives some information about the current
     environment and editor
     """
 
-    def __init__(self, parent, notebook):
-        Frame.__init__(self, parent, background="#e1e1e1")
+    def __init__(self, parent, notebook, theme=None):
+        self.theme = theme or {}
+        ttk.Frame.__init__(self, parent, style='StatusBar.TFrame')
         self.UPDATE_PERIOD_POSITION = 100
         self.UPDATE_PERIOD_SAVE_CLEAR = 4000
-        self.config(borderwidth=1, relief=GROOVE)
-        self.python_label = Label(self, text="Python " + python_version(),
-                                  borderwidth=1, relief=SUNKEN, width=13,
-                                  background="#e1e1e1", foreground="#101010")
-        self.position_label = Label(self, text="position", borderwidth=1,
-                                    relief=SUNKEN, justify=CENTER, width=13,
-                                    background="#e1e1e1", foreground="#101010")
-        self.mode_label = Label(self, text="", borderwidth=1, relief=SUNKEN,
-                                justify=CENTER, background="#e1e1e1", width=13,
-                                foreground="#101010")
-        self.save_label = Label(self, text="", borderwidth=1, relief=SUNKEN,
-                                justify=LEFT, anchor=W, background="#e1e1e1",
-                                foreground="#101010")
-        self.python_label.grid(row=0, column=3, ipadx=8, ipady=3)
-        self.position_label.grid(row=0, column=2, ipadx=8, ipady=3)
-        self.mode_label.grid(row=0, column=1, ipadx=8, ipady=3)
-        self.save_label.grid(row=0, column=0, ipadx=15, ipady=3, sticky="ew")
+        self.config(padding=(8, 6))
+
+        self.python_label = ttk.Label(self,
+                                      text="Python " + python_version(),
+                                      width=13,
+                                      anchor='center',
+                                      style='StatusBarAccent.TLabel')
+        self.position_label = ttk.Label(self, text="", width=13,
+                                        anchor='center',
+                                        style='StatusBar.TLabel')
+        self.mode_label = ttk.Label(self, text="", width=13,
+                                    anchor='center',
+                                    style='StatusBarAccent.TLabel')
+        self.save_label = ttk.Label(self, text="", anchor='w',
+                                    style='StatusBar.TLabel')
+
+        self.save_label.grid(row=0, column=0, sticky="ew", padx=(4, 12))
+        self.mode_label.grid(row=0, column=1, padx=(0, 12))
+        self.position_label.grid(row=0, column=2, padx=(0, 12))
+        self.python_label.grid(row=0, column=3)
 
         self.columnconfigure(0, weight=1)
 
@@ -44,7 +48,7 @@ class StatusBar(Frame):
             self.after_cancel(self.callback_id)
         import os
         display_text = "   " + tr("Saving file") + " '" + os.path.basename(filename) + "'"
-        self.save_label.config(text=display_text)
+        self.save_label.config(text=display_text, style='StatusBarHighlight.TLabel')
         self.displaying_save = True
         # Then clear the text after a few seconds
         self.callback_id = self.after(self.UPDATE_PERIOD_SAVE_CLEAR,
@@ -53,7 +57,7 @@ class StatusBar(Frame):
 
     def clear_save_label(self):
         """ Clear the save label text, used once the user has saved the file """
-        self.save_label.config(text="")
+        self.save_label.config(text="", style='StatusBar.TLabel')
         self.displaying_save = False
 
 
@@ -73,5 +77,16 @@ class StatusBar(Frame):
     def change_mode(self, mode):
         """ Change the current mode displayed in the mode_label """
         display_text = "mode " + tr(mode)
-        self.mode_label.config(text=display_text)
+        self.mode_label.config(text=display_text, style='StatusBarAccent.TLabel')
 
+    def update_theme(self, theme):
+        """Refresh the appearance after the palette changed."""
+        self.theme = theme or self.theme
+        self.configure(style='StatusBar.TFrame')
+        self.python_label.configure(style='StatusBarAccent.TLabel')
+        self.mode_label.configure(style='StatusBarAccent.TLabel')
+        if self.displaying_save:
+            self.save_label.configure(style='StatusBarHighlight.TLabel')
+        else:
+            self.save_label.configure(style='StatusBar.TLabel')
+        self.position_label.configure(style='StatusBar.TLabel')
